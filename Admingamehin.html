@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GameHub Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#0a0d1a;--card:#13182e;--card2:#1c2340;--text:#eef0f8;--muted:#7a84b0;--accent:#7c5cff;--accent2:#22d3a6;--red:#ff4f6a;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif;line-height:1.5;min-height:100vh}
+/* LOGIN */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-box{background:var(--card);border-radius:22px;padding:32px 28px;width:100%;max-width:380px;border:1px solid rgba(124,92,255,.2)}
+.login-box .icon{font-size:2.5rem;text-align:center;margin-bottom:8px}
+.login-box h1{text-align:center;font-size:1.3rem;margin-bottom:6px}
+.login-box p{text-align:center;color:var(--muted);font-size:.88rem;margin-bottom:22px}
+/* PANEL */
+.panel{display:none}
+header{background:var(--card);border-bottom:1px solid rgba(124,92,255,.15);position:sticky;top:env(safe-area-inset-top,0px);z-index:10}
+.topbar{max-width:1100px;margin:auto;display:flex;align-items:center;gap:10px;padding:12px 16px}
+.logo{font-weight:800;font-size:1.1rem}.logo span{color:var(--accent)}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.badge-count{background:var(--accent);color:#fff;font-size:.72rem;font-weight:700;padding:2px 7px;border-radius:99px}
+.wrap{max-width:1100px;margin:auto;padding:16px;display:grid;grid-template-columns:200px 1fr;gap:16px}
+@media(max-width:640px){.wrap{grid-template-columns:1fr}}
+.sidebar{background:var(--card);border-radius:16px;padding:12px;height:fit-content;position:sticky;top:72px}
+.sidebar button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--muted);font:inherit;font-size:.92rem;font-weight:600;padding:10px 12px;border-radius:10px;cursor:pointer;margin-bottom:2px}
+.sidebar button.active{background:rgba(124,92,255,.15);color:var(--accent)}
+.sidebar button:hover:not(.active){background:rgba(128,128,160,.08)}
+.content{}
+.tab-content{display:none}.tab-content.active{display:block}
+/* FORM */
+.form-card{background:var(--card);border-radius:18px;padding:20px;margin-bottom:16px}
+.form-card h2{font-size:1.05rem;margin-bottom:14px;color:var(--accent)}
+label{display:block;font-size:.82rem;color:var(--muted);margin-bottom:4px;font-weight:600}
+input[type=text],input[type=password],textarea,select{width:100%;padding:11px 13px;border-radius:11px;border:1px solid rgba(128,128,160,.2);background:var(--card2);color:var(--text);font-size:.93rem;font-family:inherit;margin-bottom:12px;outline:none}
+input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+textarea{min-height:80px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:500px){.row{grid-template-columns:1fr}}
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;font:inherit;font-weight:700;padding:10px 16px;border-radius:11px;border:0;cursor:pointer;font-size:.9rem}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.success{background:var(--accent2);color:#04261d}
+.btn.danger{background:rgba(255,79,106,.15);color:var(--red)}
+.btn.ghost{background:rgba(128,128,160,.12);color:var(--muted)}
+.btn.full{width:100%;justify-content:center}
+.btn:hover{opacity:.88}
+/* CARDS */
+.game-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.game-card{background:var(--card);border-radius:16px;padding:15px}
+.game-card .gc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px}
+.game-card h3{font-size:.97rem;flex:1}
+.game-card p{color:var(--muted);font-size:.85rem;margin-bottom:10px}
+.gc-links{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.gc-links a{font-size:.78rem;font-weight:700;text-decoration:none;padding:5px 10px;border-radius:8px;color:#04261d;background:var(--accent2)}
+.gc-links a.alt{background:rgba(128,128,160,.18);color:var(--text)}
+.tag{display:inline-block;font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:99px;background:rgba(124,92,255,.18);color:var(--accent)}
+.tag.mob{background:rgba(34,211,166,.15);color:var(--accent2)}
+.tag.com{background:rgba(255,200,50,.12);color:#ffc832}
+.tag.pend{background:rgba(255,79,106,.12);color:var(--red)}
+.divider{height:1px;background:rgba(128,128,160,.12);margin:14px 0}
+.msg{font-size:.85rem;text-align:center;padding:8px;border-radius:8px;min-height:20px}
+.msg.ok{color:var(--accent2);background:rgba(34,211,166,.08)}
+.msg.err{color:var(--red);background:rgba(255,79,106,.08)}
+.empty{color:var(--muted);text-align:center;padding:32px;font-size:.9rem}
+.sub-card{background:var(--card);border-radius:16px;padding:15px;display:flex;flex-direction:column;gap:8px}
+.sub-card h3{font-size:.97rem}
+.sub-card p{color:var(--muted);font-size:.85rem}
+.sub-card a{color:var(--accent2);font-size:.82rem;word-break:break-all}
+.sub-actions{display:flex;gap:8px;flex-wrap:wrap}
+.link-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;margin-bottom:8px}
+.link-row input{margin-bottom:0}
+.link-row .rm{background:rgba(255,79,106,.12);color:var(--red);border:0;border-radius:8px;padding:8px 10px;cursor:pointer;font-size:.85rem}
+</style>
+</head>
+<body>
+
+<!-- ===== ISI DI SINI ===== -->
+<script>
+const SUPA_URL  = "https://dzxixehgnketcmmujynb.supabase.co"; // URL Supabase kamu
+const SUPA_KEY  = "sb_publishable_dVxJEPmx1r6iSZ2IQNDedw_7dkWpSCT"; // Anon Key Supabase kamu
+const ADMIN_PASS = "p"; // ganti password
+</script>
+<!-- ======================== -->
+
+<!-- LOGIN -->
+<div class="login-wrap" id="loginWrap">
+  <div class="login-box">
+    <div class="icon">🔐</div>
+    <h1>Admin GameHub</h1>
+    <p>Masuk untuk mengelola game dan kiriman komunitas.</p>
+    <label>Password</label>
+    <input type="password" id="pw" placeholder="Masukkan password…" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn primary full" onclick="doLogin()">Masuk</button>
+    <div id="loginMsg" class="msg" style="margin-top:10px"></div>
+  </div>
+</div>
+
+<!-- PANEL ADMIN -->
+<div class="panel" id="panel">
+<header>
+  <div class="topbar">
+    <div class="logo">Game<span>Hub</span> <span style="font-size:.75rem;color:var(--muted);font-weight:400">Admin</span></div>
+    <div class="topbar-right">
+      <span id="pendingBadge" style="display:none"><span class="badge-count" id="pendCount">0</span> pending</span>
+      <button class="btn ghost" onclick="doLogout()">Keluar</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <button class="active" data-tab="addGame">➕ Tambah Game</button>
+    <button data-tab="manageGames">🎮 Kelola Game</button>
+    <button data-tab="submissions">📥 Kiriman</button>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- TAB: Tambah Game -->
+    <div class="tab-content active" id="tab-addGame">
+      <div class="form-card">
+        <h2>➕ Tambah Game Baru</h2>
+        <label>Judul Game</label>
+        <input type="text" id="aTitle" placeholder="Contoh: GTA V">
+        <label>Deskripsi / Versi / Ukuran</label>
+        <textarea id="aDesc" placeholder="Contoh: v1.0.0 – 70 GB – Repack by..."></textarea>
+        <div class="row">
+          <div>
+            <label>Tipe</label>
+            <select id="aType">
+              <option value="pc">💻 PC</option>
+              <option value="mobile">📱 Mobile / Port</option>
+            </select>
+          </div>
+          <div>
+            <label>Tag Label</label>
+            <input type="text" id="aTag" placeholder="PC / Android / iOS / Port">
+          </div>
+        </div>
+        <label>Link Download</label>
+        <div id="linksWrap">
+          <div class="link-row">
+            <input type="text" placeholder="Nama tombol (Download)">
+            <input type="text" placeholder="URL (https://…)">
+            <button class="rm" onclick="this.closest('.link-row').remove()">✕</button>
+          </div>
+        </div>
+        <button class="btn ghost" style="margin-bottom:14px" onclick="addLinkRow()">+ Tambah Link</button>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:14px">
+          <input type="checkbox" id="aFeat" style="width:auto;margin:0;accent-color:var(--accent)"> Tampil di bagian Populer (Lobby)
+        </label>
+        <button class="btn success full" onclick="saveGame()">💾 Simpan Game</button>
+        <div id="aMsg" class="msg" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <!-- TAB: Kelola Game -->
+    <div class="tab-content" id="tab-manageGames">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h2 style="font-size:1.05rem">🎮 Semua Game (<span id="totalGames">0</span>)</h2>
+        <button class="btn ghost" onclick="loadGames()">🔄 Refresh</button>
+      </div>
+      <div class="game-grid" id="gameGrid"><div class="empty">Memuat…</div></div>
+    </div>
+
+    <!-- TAB: Kiriman -->
+    <div class="tab-content" id="tab-submissions">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h2 style="font-size:1.05rem">📥 Kiriman Komunitas</h2>
+        <button class="btn ghost" onclick="loadSubs()">🔄 Refresh</button>
+      </div>
+      <div class="game-grid" id="subGrid"><div class="empty">Memuat…</div></div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<script>
+const {createClient}=supabase;
+let sb=null;
+const esc=s=>String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function doLogin(){
+  const v=document.getElementById("pw").value;
+  const m=document.getElementById("loginMsg");
+  if(v!==ADMIN_PASS){m.className="msg err";m.textContent="Password salah.";return;}
+  try{if(SUPA_URL&&SUPA_KEY)sb=createClient(SUPA_URL,SUPA_KEY);}catch(e){}
+  document.getElementById("loginWrap").style.display="none";
+  document.getElementById("panel").style.display="block";
+  loadGames();loadSubs();
+}
+function doLogout(){
+  document.getElementById("loginWrap").style.display="flex";
+  document.getElementById("panel").style.display="none";
+  document.getElementById("pw").value="";sb=null;
+}
+
+// Sidebar tabs
+document.querySelectorAll(".sidebar button[data-tab]").forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll(".sidebar button").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".tab-content").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    document.getElementById("tab-"+b.dataset.tab).classList.add("active");
+  };
+});
+
+// Link rows
+function addLinkRow(){
+  const row=document.createElement("div");row.className="link-row";
+  row.innerHTML=`<input type="text" placeholder="Nama tombol"><input type="text" placeholder="URL (https://…)"><button class="rm" onclick="this.closest('.link-row').remove()">✕</button>`;
+  document.getElementById("linksWrap").appendChild(row);
+}
+
+async function saveGame(){
+  const title=document.getElementById("aTitle").value.trim();
+  const desc=document.getElementById("aDesc").value.trim();
+  const type=document.getElementById("aType").value;
+  const tag=document.getElementById("aTag").value.trim()||(type==="pc"?"PC":"Mobile");
+  const feat=document.getElementById("aFeat").checked;
+  const msg=document.getElementById("aMsg");
+  const rows=[...document.querySelectorAll("#linksWrap .link-row")];
+  const links=rows.map(r=>{const ins=r.querySelectorAll("input");return[ins[0].value.trim()||"Download",ins[1].value.trim()];}).filter(l=>l[1]);
+  if(!title){msg.className="msg err";msg.textContent="Isi judul game dulu.";return;}
+  if(!sb){msg.className="msg err";msg.textContent="Isi SUPA_URL dan SUPA_KEY dulu.";return;}
+  msg.className="msg";msg.textContent="⏳ Menyimpan…";
+  const{error}=await sb.from("games").insert({title,description:desc,type,tag,links,is_featured:feat});
+  if(error){msg.className="msg err";msg.textContent="Gagal: "+error.message;}
+  else{
+    msg.className="msg ok";msg.textContent="✅ Game berhasil disimpan!";
+    document.getElementById("aTitle").value=document.getElementById("aDesc").value=document.getElementById("aTag").value="";
+    document.getElementById("aFeat").checked=false;
+    document.getElementById("linksWrap").innerHTML=`<div class="link-row"><input type="text" placeholder="Nama tombol (Download)"><input type="text" placeholder="URL (https://…)"><button class="rm" onclick="this.closest('.link-row').remove()">✕</button></div>`;
+    loadGames();
+  }
+}
+
+async function loadGames(){
+  if(!sb){document.getElementById("gameGrid").innerHTML='<div class="empty">Isi konfigurasi Supabase dulu.</div>';return;}
+  document.getElementById("gameGrid").innerHTML='<div class="empty">Memuat…</div>';
+  const{data}=await sb.from("games").select("*").order("created_at",{ascending:false});
+  const games=data||[];
+  document.getElementById("totalGames").textContent=games.length;
+  if(!games.length){document.getElementById("gameGrid").innerHTML='<div class="empty">Belum ada game.</div>';return;}
+  document.getElementById("gameGrid").innerHTML=games.map(g=>{
+    const lk=(g.links||[]).map((l,i)=>`<a class="${i?"alt":""}" href="${esc(l[1])}" target="_blank" rel="noopener noreferrer">${esc(l[0])}</a>`).join("");
+    const featBadge=g.is_featured?'<span class="tag" style="margin-left:6px">🔥 Populer</span>':'';
+    return`<div class="game-card">
+      <div class="gc-head"><span class="tag ${g.type==="mobile"?"mob":""}">${esc(g.tag)}</span>${featBadge}<button class="btn danger" style="padding:5px 10px;font-size:.78rem" onclick="deleteGame('${g.id}')">🗑 Hapus</button></div>
+      <h3>${esc(g.title)}</h3>
+      <p>${esc(g.description)}</p>
+      <div class="gc-links">${lk}</div>
+    </div>`;
+  }).join("");
+}
+
+async function loadSubs(){
+  if(!sb){document.getElementById("subGrid").innerHTML='<div class="empty">Isi konfigurasi Supabase dulu.</div>';return;}
+  document.getElementById("subGrid").innerHTML='<div class="empty">Memuat…</div>';
+  const{data}=await sb.from("submissions").select("*").order("created_at",{ascending:false});
+  const subs=data||[];
+  const pend=subs.filter(s=>s.status==="pending").length;
+  document.getElementById("pendCount").textContent=pend;
+  document.getElementById("pendingBadge").style.display=pend?"inline":"none";
+  if(!subs.length){document.getElementById("subGrid").innerHTML='<div class="empty">Belum ada kiriman.</div>';return;}
+  document.getElementById("subGrid").innerHTML=subs.map(s=>{
+    const statusTag=s.status==="pending"?'<span class="tag pend">⏳ Pending</span>':'<span class="tag mob">✅ Approved</span>';
+    const approveBtn=s.status==="pending"?`<button class="btn success" onclick="approveSub('${s.id}')" style="font-size:.8rem;padding:6px 10px">✓ Approve</button>`:"";
+    return`<div class="sub-card">
+      ${statusTag}
+      <h3>${esc(s.title)}</h3>
+      <p>${esc(s.description||"–")}</p>
+      <a href="${esc(s.link)}" target="_blank" rel="noopener noreferrer">${esc(s.link)}</a>
+      <div class="sub-actions">${approveBtn}<button class="btn danger" onclick="deleteSub('${s.id}')" style="font-size:.8rem;padding:6px 10px">🗑 Hapus</button></div>
+    </div>`;
+  }).join("");
+}
+
+async function deleteGame(id){
+  if(!confirm("Hapus game ini?"))return;
+  await sb.from("games").delete().eq("id",id);
+  loadGames();
+}
+async function approveSub(id){
+  await sb.from("submissions").update({status:"approved"}).eq("id",id);
+  loadSubs();
+}
+async function deleteSub(id){
+  if(!confirm("Hapus kiriman ini?"))return;
+  await sb.from("submissions").delete().eq("id",id);
+  loadSubs();
+}
+</script>
+</body>
+</html>
